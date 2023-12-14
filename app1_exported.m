@@ -7,7 +7,7 @@ classdef app1_exported < matlab.apps.AppBase
         Left                matlab.ui.container.Panel
         Tree                matlab.ui.container.Tree
         RootNode            matlab.ui.container.TreeNode
-        Node_2              matlab.ui.container.TreeNode
+        histequal           matlab.ui.container.TreeNode
         Space               matlab.ui.container.TreeNode
         MidFilt             matlab.ui.container.TreeNode
         Rebuild             matlab.ui.container.TreeNode
@@ -20,6 +20,17 @@ classdef app1_exported < matlab.apps.AppBase
         MainGraph           matlab.ui.control.UIAxes
         Right               matlab.ui.container.Panel
         Panel               matlab.ui.container.Panel
+        TabGroup            matlab.ui.container.TabGroup
+        Tab_4               matlab.ui.container.Tab
+        h                   matlab.ui.control.Spinner
+        Label_3             matlab.ui.control.Label
+        w                   matlab.ui.control.Spinner
+        Label_2             matlab.ui.control.Label
+        Tab_5               matlab.ui.container.Tab
+        EditField           matlab.ui.control.EditField
+        Label_4             matlab.ui.control.Label
+        Tab_6               matlab.ui.container.Tab
+        Tab_7               matlab.ui.container.Tab
         InfoTabs            matlab.ui.container.TabGroup
         Hist                matlab.ui.container.Tab
         HistSeperateSwitch  matlab.ui.control.Switch
@@ -48,37 +59,88 @@ classdef app1_exported < matlab.apps.AppBase
     
     properties (Access = public)
         MainGraphArray % 主图像数组
-        
+        PreviewGraphArray % 预览图像数组
+        DisplayGraphArray %
+        GraphChannel
+        GraphWidth
+        GraphHeight
+        IsGray
     end
     
     
     
-    methods (Access = public)
-        
-        
+    methods (Access = public)  
         function ToOpen(app)
-            app.MainArray = imread(uiopen());
+            %app.MainArray = imread(uiopen());
+            [path,filename] = uigetfile( ...
+                    {
+                        "*.jpg;.*.jpeg;*.jpe;*.jfif;*.png;*.bmp;*.webp;*.hiec;*.hif;*.tif;*.tiff",...
+                        '图片文件';
+                        
+                        '*.jpg,.*.jpeg,*.jpe,*.jfif','JPEG';
+                        '*.png',                     'PNG';
+                        '*.bmp',                     'bmp';
+                        '*.webp',                    'webp';
+                        '*.hiec,*.hif',              'HEIC';
+                        '*.tif;*.tiff',              'TIFF';
+                        '*.*',                       "所有文件";
+                    }...
+                );
+            assert(filename ~= "","没有选择文件");
+            
+            if(filename == "" || path == "")
+                app.MainGraphArray=imread("peppers.png");
+            end
+            app.MainGraphArray = imread(strcat(filename,path));
+            
+            if (size(size(app.MainGraphArray)) == 3)
+                app.GraphChannel = size(app.MainGraphArray,3);
+            else
+                app.GraphChannel = 1;
+            end
+            
+            app.IsGray = app.GraphChannel == 1;
+            [app.GraphHeight app.GraphWidth ~] = size(app.MainGraphArray);
+            app.PreviewGraphArray = app.MainGraphArray;
+            app.DisplayGraphArray = app.MainGraphArray;
+            app.FlushMainGraph();
             
         end
         
         function FlushMainGraph(app)
             %app.MainGraph.imshow(app.MainGraphArray);
-            image(app.MainGraph,app.MainGraphArray);
+            switch (app.PreviewOnOffSwitch.Value)
+                case 'Off'
+                    app.DisplayGraphArray = app.MainGraphArray;
+                case 'On'
+                    switch (app.PreviewModeSwitch.Value)
+                        case '左右'
+                            size(app.MainGraphArray(:,1:floor(app.GraphWidth/2),:))
+                            size(app.PreviewGraphArray(:,floor(app.GraphWidth/2)+1:app.GraphWidth,:))
+                            app.DisplayGraphArray = cat(2,...
+                                        app.MainGraphArray(:,1:floor(app.GraphWidth/2),:), ...
+                                        app.PreviewGraphArray(:,(floor(app.GraphWidth/2)+1):app.GraphWidth, :)...
+                                    );
+                        case '全部'
+                            app.DisplayGraphArray = app.PreviewGraphArray;
+                    end
+            end
+            image(app.MainGraph,app.DisplayGraphArray);
         end
            
         
         function FlushOcilSlow(app)
             
-            switch app.RGBSwitch_2.Value
+            switch (app.RGBSwitch_2.Value)
                 case '分离'
                     cla(app.OcilAx_2);
                     hold(app.OcilAx_2,"on");
                     R = (app.MainGraphArray(:,:,1));
-                    G = (app.MainGraphArray(:,:,2)); 
-                    B = (app.MainGraphArray(:,:,3)); 
+                    G = (app.DisplayGraphArray(:,:,2)); 
+                    B = (app.DisplayGraphArray(:,:,3)); 
                     
-                    col(1:height(app.MainGraphArray),1)=1;
-                    idx = (col*[1:width(app.MainGraphArray)]);
+                    col(1:height(app.DisplayGraphArray),1)=1;
+                    idx = col*[1:width(app.DisplayGraphArray)];
                     DOT_SZ = 1;
                     ALPHA_LEVEL = 0.01;
                     
@@ -89,46 +151,42 @@ classdef app1_exported < matlab.apps.AppBase
                     sg.MarkerEdgeAlpha = ALPHA_LEVEL;
                     sb=scatter(app.OcilAx_2,idx(:),B(:),"blue",'.');
                     sb.MarkerEdgeAlpha = ALPHA_LEVEL;
-                    app.OcilAx_2.XLim = [1 width(app.MainGraphArray)];
+                    app.OcilAx_2.XLim = [1 width(app.DisplayGraphArray)];
                     app.OcilAx_2.YLim = [0 256];
                     app.OcilAx_2.YTick = [0 64 127 192 256];
                 case 'Off'
                     cla(app.OcilAx_2);
                     
-                    [w,h,chn] = size(app.MainGraphArray);
-                    W(1:w,1:h) = mean(app.MainGraphArray,3);
+                    [w,h,chn] = size(app.DisplayGraphArray);
+                    W(1:w,1:h) = mean(app.DisplayGraphArray,3);
                     
-                    col(1:height(app.MainGraphArray),1)=1;
-                    idx = (col*[1:width(app.MainGraphArray)]);
+                    col(1:height(app.DisplayGraphArray),1)=1;
+                    idx = (col*[1:width(app.DisplayGraphArray)]);
                     
                     ALPHA_LEVEL = 0.01;
                     sr=scatter(app.OcilAx_2,idx(:),W(:),"white",'.');
                     sr.MarkerEdgeAlpha = ALPHA_LEVEL;
-            end
+            end % switch rgbswitch_2
             
-        end
+        end % func flushocilslow
         
         
         function FlushOcil(app)
             cla(app.OcilAx);
             
-            app.OcilAx.XLim = [1 width(app.MainGraphArray)];
+            app.OcilAx.XLim = [1 width(app.DisplayGraphArray)];
             app.OcilAx.YLim = [0 256];
             app.OcilAx.YTick = [0 64 127 192 256];
             
-            R = app.MainGraphArray(:,:,1);
-            G = app.MainGraphArray(:,:,2); 
-            B = app.MainGraphArray(:,:,3); 
+            R = app.DisplayGraphArray(:,:,1);
+            G = app.DisplayGraphArray(:,:,2); 
+            B = app.DisplayGraphArray(:,:,3); 
             W = (R+G+B)./3.0;
             
             XR = mean(R,1);
             XG = mean(G,1);
             XB = mean(B,1);
             XW = mean(W,1);
-            
-            
-            
-            
             
             switch app.RGBSwitch_2.Value
                 case '分离'
@@ -138,9 +196,6 @@ classdef app1_exported < matlab.apps.AppBase
                     plot(app.OcilAx,XG,"Color",'g');
                     plot(app.OcilAx,XB,"Color",'b');
                     hold(app.OcilAx,"off");
-                    
-                   
-                    
                 case 'Off'
                     plot(app.OcilAx,XW,"Color",'white');
                     
@@ -151,14 +206,20 @@ classdef app1_exported < matlab.apps.AppBase
         function FlushHist(app) %%%%%%%%%%%%%%%%%
             
             cla(app.HistAxes);
+            
+            targGraf = app.PreviewGraphArray;
+            if app.PreviewOnOffSwitch.Value == "Off"
+                targGraf = app.DisplayGraphArray;
+            end
+            
             switch app.HistSeperateSwitch.Value
                 
                 case '分离'
                     hold(app.HistAxes,"on");
-                    N = size(app.MainGraphArray(:));
-                    R = app.MainGraphArray(:,:,1); 
-                    G = app.MainGraphArray(:,:,2); 
-                    B = app.MainGraphArray(:,:,3); 
+                    N = size(targGraf);
+                    R = targGraf(:,:,1); 
+                    G = targGraf(:,:,2); 
+                    B = targGraf(:,:,3); 
                     %[R G B] = double([R G B]);
                   %  plot(app.HistAxes,imhist(R),'MarkerFaceColor','r');
                   %  plot(app.HistAxes,imhist(G),'MarkerFaceColor','g');
@@ -177,14 +238,23 @@ classdef app1_exported < matlab.apps.AppBase
                                         
                     
                     
-                    %app.HistAxes = imhist(app.MainGraphArray);
+                    %app.HistAxes = imhist(targGraf);
                     
                 case 'Off'
-                    histogram(app.HistAxes,im2gray(app.MainGraphArray),'BinMethod','integers','FaceColor',[.5 .5 .5],'EdgeAlpha',0,'FaceAlpha',1)
+                    histogram(app.HistAxes,im2gray(targGraf),'BinMethod','integers','FaceColor',[.5 .5 .5],'EdgeAlpha',0,'FaceAlpha',1)
                     
             end
             hold(app.HistAxes,"off");
         end
+        
+        
+    end
+    
+    
+    
+    events (ListenAccess = public)
+        
+        
     end
     
 
@@ -195,6 +265,21 @@ classdef app1_exported < matlab.apps.AppBase
         function startupFcn(app)
 
                 app.MainGraphArray=imread("peppers.png");
+                
+                 if (size(size(app.MainGraphArray)) == 3)
+                app.GraphChannel = size(app.MainGraphArray,3);
+            else
+                app.GraphChannel = 1;
+            end
+            
+            app.IsGray = app.GraphChannel == 1;
+            [app.GraphHeight app.GraphWidth ~] = size(app.MainGraphArray);
+            app.PreviewGraphArray = app.MainGraphArray;
+            app.DisplayGraphArray = app.MainGraphArray;
+            app.FlushMainGraph();
+                
+                app.DisplayGraphArray=app.MainGraphArray;
+                app.PreviewGraphArray=app.MainGraphArray;
                 app.FlushMainGraph();
                 app.FlushHist();
         end
@@ -202,6 +287,47 @@ classdef app1_exported < matlab.apps.AppBase
         % Selection changed function: Tree
         function TreeSelectionChanged(app, event)
             selectedNodes = app.Tree.SelectedNodes;
+            app.Panel.Title = selectedNodes.Text;
+            switch (selectedNodes.Text)
+                case '直方图均衡化'
+                    app.PreviewGraphArray = histeq(app.MainGraphArray);
+                    %imshow(app.PreviewGraphArray)
+                    app.FlushMainGraph();
+                case '中值滤波'
+                    %h = uicontrol(app.Panel,"Style","edit");
+                    % 创建提示词
+                    text1 = uilabel(app.Panel, 'Position', [20 120 20 20], 'Text', '长');
+                    text2 = uilabel(app.Panel, 'Position', [20 80 20 20], 'Text', '宽');
+                    
+                    % 创建输入框
+                    h = uieditfield(app.Panel, "numeric", 'Position', [35 120 100 20]);
+                    w = uieditfield(app.Panel, "numeric", 'Position', [35 80 100 20]);
+
+                    %h = uieditfield(app.Panel,"numeric");
+                    %w = uieditfield(app.Panel,"numeric");
+                    
+                    button = uibutton(app.Panel, 'Position', [20 150 135 30], 'Text', '确定');
+                    
+                    
+                    
+                    h.Value=5; w.Value=5;
+                    
+                    %w = uicontrol(app.Panel,"Style","edit");
+                    
+                    
+                    %if (app.GraphChannel == 3)
+                        app.PreviewGraphArray(:,:,1) = medfilt2(app.MainGraphArray(:,:,1),[h.Value w.Value]);
+                        app.PreviewGraphArray(:,:,2) = medfilt2(app.MainGraphArray(:,:,2),[h.Value w.Value]);
+                        app.PreviewGraphArray(:,:,3) = medfilt2(app.MainGraphArray(:,:,3),[h.Value w.Value]);
+                        imshow(app.PreviewGraphArray)
+                    %else
+                    %    app.PreviewGraphArray = medfilt2(app.MainGraphArray, [h w]);
+                    %end
+                otherwise
+                    
+                    app.Panel
+            end
+            app.FlushMainGraph();
             
         end
 
@@ -209,24 +335,9 @@ classdef app1_exported < matlab.apps.AppBase
         function OpenFile(app, event)
             % MainGraphArray = uiopen('*.jpg');
             
-            [path,filename] = uigetfile( ...
-                    {
-                        '*.jpg','JPEG';
-                        '*.png','PNG';
-                        '*.bmp','bmp';
-                        '*.webp','webp';
-                        '*.tif;*.tiff','TIFF';
-                    }...
-                );
-            app.MainGraphArray = imread(strcat(filename,path));
-            app.FlushMainGraph();
+            app.ToOpen();
             
-        end
-
-        % Value changed function: HistSeperateSwitch
-        function HistSeperateSwitchValueChanged(app, event)
-            value = app.HistSeperateSwitch.Value;
-            app.FlushHist();
+            
         end
 
         % Changes arrangement of the app based on UIFigure width
@@ -265,9 +376,33 @@ classdef app1_exported < matlab.apps.AppBase
             end
         end
 
+        % Value changed function: HistSeperateSwitch
+        function HistSeperateSwitchValueChanged(app, event)
+            value = app.HistSeperateSwitch.Value;
+            app.FlushHist();
+        end
+
         % Value changed function: RGBSwitch_2
         function RGBSwitch_2ValueChanged(app, event)
             value = app.RGBSwitch_2.Value;
+            app.FlushOcil();
+            app.FlushOcilSlow();
+        end
+
+        % Value changed function: PreviewOnOffSwitch
+        function PreviewOnOffSwitchValueChanged(app, event)
+            value = app.PreviewOnOffSwitch.Value;
+            app.FlushMainGraph();
+            app.FlushHist();
+            app.FlushOcil();
+            app.FlushOcilSlow();
+        end
+
+        % Value changed function: PreviewModeSwitch
+        function PreviewModeSwitchValueChanged(app, event)
+            value = app.PreviewModeSwitch.Value;
+            app.FlushMainGraph();
+            app.FlushHist();
             app.FlushOcil();
             app.FlushOcilSlow();
         end
@@ -311,9 +446,10 @@ classdef app1_exported < matlab.apps.AppBase
             app.RootNode = uitreenode(app.Tree);
             app.RootNode.Text = 'Root';
 
-            % Create Node_2
-            app.Node_2 = uitreenode(app.RootNode);
-            app.Node_2.Text = '直方图均衡化';
+            % Create histequal
+            app.histequal = uitreenode(app.RootNode);
+            app.histequal.Tag = 'hsteq';
+            app.histequal.Text = '直方图均衡化';
 
             % Create Space
             app.Space = uitreenode(app.RootNode);
@@ -368,6 +504,7 @@ classdef app1_exported < matlab.apps.AppBase
             % Create PreviewModeSwitch
             app.PreviewModeSwitch = uiswitch(app.Center, 'slider');
             app.PreviewModeSwitch.Items = {'左右', '全部'};
+            app.PreviewModeSwitch.ValueChangedFcn = createCallbackFcn(app, @PreviewModeSwitchValueChanged, true);
             app.PreviewModeSwitch.Position = [373 303 45 20];
             app.PreviewModeSwitch.Value = '左右';
 
@@ -379,7 +516,9 @@ classdef app1_exported < matlab.apps.AppBase
 
             % Create PreviewOnOffSwitch
             app.PreviewOnOffSwitch = uiswitch(app.Center, 'toggle');
+            app.PreviewOnOffSwitch.ValueChangedFcn = createCallbackFcn(app, @PreviewOnOffSwitchValueChanged, true);
             app.PreviewOnOffSwitch.Position = [117 286 20 45];
+            app.PreviewOnOffSwitch.Value = 'On';
 
             % Create Right
             app.Right = uipanel(app.GridLayout);
@@ -410,14 +549,14 @@ classdef app1_exported < matlab.apps.AppBase
             % Create SwitchLabel
             app.SwitchLabel = uilabel(app.Hist);
             app.SwitchLabel.HorizontalAlignment = 'center';
-            app.SwitchLabel.Position = [20 120 53 22];
+            app.SwitchLabel.Position = [32 183 53 22];
             app.SwitchLabel.Text = '通道分离';
 
             % Create HistSeperateSwitch
             app.HistSeperateSwitch = uiswitch(app.Hist, 'slider');
             app.HistSeperateSwitch.Items = {'Off', '分离'};
             app.HistSeperateSwitch.ValueChangedFcn = createCallbackFcn(app, @HistSeperateSwitchValueChanged, true);
-            app.HistSeperateSwitch.Position = [31 204 29 13];
+            app.HistSeperateSwitch.Position = [41 202 29 13];
 
             % Create Ocil
             app.Ocil = uitab(app.InfoTabs);
@@ -436,7 +575,7 @@ classdef app1_exported < matlab.apps.AppBase
 
             % Create OcilAx_2
             app.OcilAx_2 = uiaxes(app.Ocil);
-            title(app.OcilAx_2, '示波器')
+            title(app.OcilAx_2, '示波器(慢速)')
             xlabel(app.OcilAx_2, 'X')
             app.OcilAx_2.AmbientLightColor = [0 0 0];
             app.OcilAx_2.LineWidth = 0.1;
@@ -455,7 +594,7 @@ classdef app1_exported < matlab.apps.AppBase
             app.RGBSwitch_2 = uiswitch(app.Ocil, 'slider');
             app.RGBSwitch_2.Items = {'Off', '分离'};
             app.RGBSwitch_2.ValueChangedFcn = createCallbackFcn(app, @RGBSwitch_2ValueChanged, true);
-            app.RGBSwitch_2.Position = [31 145 29 13];
+            app.RGBSwitch_2.Position = [42 178 29 13];
 
             % Create Tab_3
             app.Tab_3 = uitab(app.InfoTabs);
@@ -466,6 +605,57 @@ classdef app1_exported < matlab.apps.AppBase
             app.Panel.Title = 'Panel';
             app.Panel.SizeChangedFcn = createCallbackFcn(app, @updateAppLayout, true);
             app.Panel.Position = [6 507 292 221];
+
+            % Create TabGroup
+            app.TabGroup = uitabgroup(app.Panel);
+            app.TabGroup.Position = [1 -8 291 183];
+
+            % Create Tab_4
+            app.Tab_4 = uitab(app.TabGroup);
+            app.Tab_4.Title = '中值滤波区域';
+
+            % Create Label_2
+            app.Label_2 = uilabel(app.Tab_4);
+            app.Label_2.HorizontalAlignment = 'right';
+            app.Label_2.Position = [40 117 25 22];
+            app.Label_2.Text = '长';
+
+            % Create w
+            app.w = uispinner(app.Tab_4);
+            app.w.Position = [80 117 100 22];
+
+            % Create Label_3
+            app.Label_3 = uilabel(app.Tab_4);
+            app.Label_3.HorizontalAlignment = 'right';
+            app.Label_3.Position = [41 83 25 22];
+            app.Label_3.Text = '宽';
+
+            % Create h
+            app.h = uispinner(app.Tab_4);
+            app.h.Position = [81 83 100 22];
+
+            % Create Tab_5
+            app.Tab_5 = uitab(app.TabGroup);
+            app.Tab_5.Title = '卷积核滤波';
+
+            % Create Label_4
+            app.Label_4 = uilabel(app.Tab_5);
+            app.Label_4.HorizontalAlignment = 'right';
+            app.Label_4.Position = [42 117 25 22];
+            app.Label_4.Text = '核';
+
+            % Create EditField
+            app.EditField = uieditfield(app.Tab_5, 'text');
+            app.EditField.Position = [81 117 170 22];
+            app.EditField.Value = '[1 1 1; 1 1 1; 1 1 1]';
+
+            % Create Tab_6
+            app.Tab_6 = uitab(app.TabGroup);
+            app.Tab_6.Title = '频率域滤波';
+
+            % Create Tab_7
+            app.Tab_7 = uitab(app.TabGroup);
+            app.Tab_7.Title = '逆滤波';
 
             % Create Files
             app.Files = uimenu(app.Menus);
@@ -503,14 +693,26 @@ classdef app1_exported < matlab.apps.AppBase
         % Construct app
         function app = app1_exported
 
-            % Create UIFigure and components
-            createComponents(app)
+            runningApp = getRunningApp(app);
 
-            % Register the app with App Designer
-            registerApp(app, app.Menus)
+            % Check for running singleton app
+            if isempty(runningApp)
 
-            % Execute the startup function
-            runStartupFcn(app, @startupFcn)
+                % Create UIFigure and components
+                createComponents(app)
+
+                % Register the app with App Designer
+                registerApp(app, app.Menus)
+
+                % Execute the startup function
+                runStartupFcn(app, @startupFcn)
+            else
+
+                % Focus the running singleton app
+                figure(runningApp.Menus)
+
+                app = runningApp;
+            end
 
             if nargout == 0
                 clear app
