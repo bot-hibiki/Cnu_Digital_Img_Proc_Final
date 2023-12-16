@@ -21,7 +21,8 @@ classdef app1_exported < matlab.apps.AppBase
         Node_13                 matlab.ui.container.TreeNode
         Node_7                  matlab.ui.container.TreeNode
         Node_11                 matlab.ui.container.TreeNode
-        Node2                   matlab.ui.container.TreeNode
+        Node_14                 matlab.ui.container.TreeNode
+        Node_15                 matlab.ui.container.TreeNode
         Center                  matlab.ui.container.Panel
         PreviewOnOffSwitch      matlab.ui.control.ToggleSwitch
         Switch_2Label           matlab.ui.control.Label
@@ -65,6 +66,13 @@ classdef app1_exported < matlab.apps.AppBase
         CoreEditField_2         matlab.ui.control.EditField
         evalLabel_2             matlab.ui.control.Label
         fre_filt_tab            matlab.ui.container.Tab
+        Spinner                 matlab.ui.control.Spinner
+        Label_9                 matlab.ui.control.Label
+        Tab_4                   matlab.ui.container.Tab
+        Label_11                matlab.ui.control.Label
+        motionDeg               matlab.ui.control.Knob
+        motionLen               matlab.ui.control.Slider
+        Label_10                matlab.ui.control.Label
         Files                   matlab.ui.container.Menu
         Open                    matlab.ui.container.Menu
         Save                    matlab.ui.container.Menu
@@ -396,8 +404,19 @@ classdef app1_exported < matlab.apps.AppBase
                     %end
                     
                 case '卷积核滤波'
-                    app.InfoTabs.SelectedTab = app.ConvFiltTab;
-                    coremat = eval(app.CoreEditField.Value);
+                    app.ParaTabGroup.SelectedTab = app.ConvFiltTab;
+                    '由于危险，放弃使用eval';
+                    %coremat = eval(app.CoreEditField.Value);
+                    [coremat,tf] = str2num(app.CoreEditField.Value,Evaluation="restricted");
+                    %for(i=[1 2 3])
+                        app.PreviewGraphArray = conv2(app.MainGraphArray,coremat);
+                case '运动模糊退化'
+                    app.ParaTabGroup.SelectedTab = app.Tab_4;
+                    len = app.motionLen.Value;
+                    deg = app.motionDeg.Value;
+                    H = fspecial('motion',len,deg);
+                    app.PreviewGraphArray = imfilter(app.PreviewGraphArray,H,'replicate');
+                    app.FlushMainGraph();
                 otherwise
                     
                     app.ParaPanel
@@ -469,15 +488,18 @@ classdef app1_exported < matlab.apps.AppBase
                 case '矩形均值'
                     app.CoreEditField.Value = "ones(3)";
                 case '十字均值'
-                    app.CoreEditField.Value = ...
-                    """[0 1 0;
-                    1 1 1;
-                    0 1 0]""";
+                    app.CoreEditField.Value = "[0 1 0;1 1 1;0 1 0]";
                 case '纵向'
                     app.CoreEditField.Value = "[1;1;1]";
                 case '横向'
                     app.CoreEditField.Value = "[1 1 1]";
             end
+            
+        end
+
+        % Value changed function: motionDeg
+        function motionDegValueChanged(app, event)
+            value = app.motionDeg.Value;
             
         end
     end
@@ -575,11 +597,15 @@ classdef app1_exported < matlab.apps.AppBase
 
             % Create Node_11
             app.Node_11 = uitreenode(app.Node_7);
-            app.Node_11.Text = '噪声';
+            app.Node_11.Text = '引入噪声';
 
-            % Create Node2
-            app.Node2 = uitreenode(app.Node_7);
-            app.Node2.Text = 'Node2';
+            % Create Node_14
+            app.Node_14 = uitreenode(app.Node_7);
+            app.Node_14.Text = '大气湍流退化';
+
+            % Create Node_15
+            app.Node_15 = uitreenode(app.Node_7);
+            app.Node_15.Text = '运动模糊退化';
 
             % Create Center
             app.Center = uipanel(app.GridLayout);
@@ -763,6 +789,51 @@ classdef app1_exported < matlab.apps.AppBase
             % Create fre_filt_tab
             app.fre_filt_tab = uitab(app.ParaTabGroup);
             app.fre_filt_tab.Title = '频率域滤波';
+
+            % Create Label_9
+            app.Label_9 = uilabel(app.fre_filt_tab);
+            app.Label_9.HorizontalAlignment = 'right';
+            app.Label_9.Position = [51 134 29 22];
+            app.Label_9.Text = '半径';
+
+            % Create Spinner
+            app.Spinner = uispinner(app.fre_filt_tab);
+            app.Spinner.Step = 0.2;
+            app.Spinner.Limits = [0 Inf];
+            app.Spinner.Position = [95 134 100 22];
+            app.Spinner.Value = 2;
+
+            % Create Tab_4
+            app.Tab_4 = uitab(app.ParaTabGroup);
+            app.Tab_4.Title = '运动模糊退化';
+
+            % Create Label_10
+            app.Label_10 = uilabel(app.Tab_4);
+            app.Label_10.HorizontalAlignment = 'right';
+            app.Label_10.Position = [168 -29 53 85];
+            app.Label_10.Text = '运动半径';
+
+            % Create motionLen
+            app.motionLen = uislider(app.Tab_4);
+            app.motionLen.Limits = [0 20];
+            app.motionLen.Orientation = 'vertical';
+            app.motionLen.Position = [235 9 3 150];
+            app.motionLen.Value = 1;
+
+            % Create motionDeg
+            app.motionDeg = uiknob(app.Tab_4, 'continuous');
+            app.motionDeg.Limits = [-150 150];
+            app.motionDeg.MajorTicks = [-150 -120 -90 -60 -30 0 30 60 90 120 150];
+            app.motionDeg.ValueChangedFcn = createCallbackFcn(app, @motionDegValueChanged, true);
+            app.motionDeg.MinorTicks = [-150 -135 -120 -105 -90 -75 -60 -45 -30 -15 0 15 30 45 60 75 90 105 120 135 150];
+            app.motionDeg.FontSize = 8;
+            app.motionDeg.Position = [42 30 105 105];
+
+            % Create Label_11
+            app.Label_11 = uilabel(app.Tab_4);
+            app.Label_11.HorizontalAlignment = 'center';
+            app.Label_11.Position = [81 71 29 22];
+            app.Label_11.Text = {'角度'; ''};
 
             % Create Panel
             app.Panel = uipanel(app.Right);
