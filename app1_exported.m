@@ -7,11 +7,16 @@ classdef app1_exported < matlab.apps.AppBase
         Left                matlab.ui.container.Panel
         Tree                matlab.ui.container.Tree
         RootNode            matlab.ui.container.TreeNode
+        Node_8              matlab.ui.container.TreeNode
         histequal           matlab.ui.container.TreeNode
         Space               matlab.ui.container.TreeNode
         MidFilt             matlab.ui.container.TreeNode
         Rebuild             matlab.ui.container.TreeNode
         Node_6              matlab.ui.container.TreeNode
+        Node_7              matlab.ui.container.TreeNode
+        Node4               matlab.ui.container.TreeNode
+        Node2               matlab.ui.container.TreeNode
+        Node3               matlab.ui.container.TreeNode
         Center              matlab.ui.container.Panel
         PreviewOnOffSwitch  matlab.ui.control.ToggleSwitch
         Switch_2Label       matlab.ui.control.Label
@@ -19,18 +24,8 @@ classdef app1_exported < matlab.apps.AppBase
         Label               matlab.ui.control.Label
         MainGraph           matlab.ui.control.UIAxes
         Right               matlab.ui.container.Panel
+        ApplyButton         matlab.ui.control.Button
         Panel               matlab.ui.container.Panel
-        TabGroup            matlab.ui.container.TabGroup
-        Tab_4               matlab.ui.container.Tab
-        h                   matlab.ui.control.Spinner
-        Label_3             matlab.ui.control.Label
-        w                   matlab.ui.control.Spinner
-        Label_2             matlab.ui.control.Label
-        Tab_5               matlab.ui.container.Tab
-        EditField           matlab.ui.control.EditField
-        Label_4             matlab.ui.control.Label
-        Tab_6               matlab.ui.container.Tab
-        Tab_7               matlab.ui.container.Tab
         InfoTabs            matlab.ui.container.TabGroup
         Hist                matlab.ui.container.Tab
         HistSeperateSwitch  matlab.ui.control.Switch
@@ -42,6 +37,20 @@ classdef app1_exported < matlab.apps.AppBase
         OcilAx_2            matlab.ui.control.UIAxes
         OcilAx              matlab.ui.control.UIAxes
         Tab_3               matlab.ui.container.Tab
+        ParaPanel           matlab.ui.container.Panel
+        ParaTabGroup        matlab.ui.container.TabGroup
+        MedFiltTab          matlab.ui.container.Tab
+        Medh                matlab.ui.control.Spinner
+        Label_3             matlab.ui.control.Label
+        Medw                matlab.ui.control.Spinner
+        Label_2             matlab.ui.control.Label
+        conv_core_filt      matlab.ui.container.Tab
+        EditField           matlab.ui.control.EditField
+        Label_4             matlab.ui.control.Label
+        engray_tab          matlab.ui.container.Tab
+        enrgray_tip         matlab.ui.control.Label
+        reverse_filt        matlab.ui.container.Tab
+        f_filt              matlab.ui.container.Tab
         Files               matlab.ui.container.Menu
         Open                matlab.ui.container.Menu
         Save                matlab.ui.container.Menu
@@ -287,45 +296,48 @@ classdef app1_exported < matlab.apps.AppBase
         % Selection changed function: Tree
         function TreeSelectionChanged(app, event)
             selectedNodes = app.Tree.SelectedNodes;
-            app.Panel.Title = selectedNodes.Text;
+            %app.ParaPanel.Title = selectedNodes.Text;
             switch (selectedNodes.Text)
                 case '直方图均衡化'
                     app.PreviewGraphArray = histeq(app.MainGraphArray);
+                    app.InfoTabs.SelectedTab = app.Hist;
                     %imshow(app.PreviewGraphArray)
                     app.FlushMainGraph();
                 case '中值滤波'
-                    %h = uicontrol(app.Panel,"Style","edit");
+                    app.InfoTabs.SelectedTab = app.MedFiltTab;
+                    h = app.Medh; w=app.Medw;
+                    %h = uicontrol(app.ParaPanel,"Style","edit");
                     % 创建提示词
-                    text1 = uilabel(app.Panel, 'Position', [20 120 20 20], 'Text', '长');
-                    text2 = uilabel(app.Panel, 'Position', [20 80 20 20], 'Text', '宽');
+                    %text1 = uilabel(app.ParaPanel, 'Position', [20 120 20 20], 'Text', '长');
+                    %text2 = uilabel(app.ParaPanel, 'Position', [20 80 20 20], 'Text', '宽');
                     
                     % 创建输入框
-                    h = uieditfield(app.Panel, "numeric", 'Position', [35 120 100 20]);
-                    w = uieditfield(app.Panel, "numeric", 'Position', [35 80 100 20]);
+                   % h = uieditfield(app.ParaPanel, "numeric", 'Position', [35 120 100 20]);
+                   % w = uieditfield(app.ParaPanel, "numeric", 'Position', [35 80 100 20]);
 
-                    %h = uieditfield(app.Panel,"numeric");
-                    %w = uieditfield(app.Panel,"numeric");
+                    %h = uieditfield(app.ParaPanel,"numeric");
+                    %w = uieditfield(app.ParaPanel,"numeric");
                     
-                    button = uibutton(app.Panel, 'Position', [20 150 135 30], 'Text', '确定');
+                   % button = uibutton(app.ParaPanel, 'Position', [20 150 135 30], 'Text', '确定');
                     
                     
                     
-                    h.Value=5; w.Value=5;
+                   % h.Value=5; w.Value=5;
                     
-                    %w = uicontrol(app.Panel,"Style","edit");
+                    %w = uicontrol(app.ParaPanel,"Style","edit");
                     
                     
                     %if (app.GraphChannel == 3)
                         app.PreviewGraphArray(:,:,1) = medfilt2(app.MainGraphArray(:,:,1),[h.Value w.Value]);
                         app.PreviewGraphArray(:,:,2) = medfilt2(app.MainGraphArray(:,:,2),[h.Value w.Value]);
                         app.PreviewGraphArray(:,:,3) = medfilt2(app.MainGraphArray(:,:,3),[h.Value w.Value]);
-                        imshow(app.PreviewGraphArray)
+                        %imshow(app.PreviewGraphArray)
                     %else
                     %    app.PreviewGraphArray = medfilt2(app.MainGraphArray, [h w]);
                     %end
                 otherwise
                     
-                    app.Panel
+                    app.ParaPanel
             end
             app.FlushMainGraph();
             
@@ -406,6 +418,12 @@ classdef app1_exported < matlab.apps.AppBase
             app.FlushOcil();
             app.FlushOcilSlow();
         end
+
+        % Value changed function: Medw
+        function MedwValueChanged(app, event)
+            value = app.Medw.Value;
+            
+        end
     end
 
     % Component initialization
@@ -440,11 +458,15 @@ classdef app1_exported < matlab.apps.AppBase
             % Create Tree
             app.Tree = uitree(app.Left);
             app.Tree.SelectionChangedFcn = createCallbackFcn(app, @TreeSelectionChanged, true);
-            app.Tree.Position = [35 362 150 300];
+            app.Tree.Position = [24 78 184 583];
 
             % Create RootNode
             app.RootNode = uitreenode(app.Tree);
             app.RootNode.Text = 'Root';
+
+            % Create Node_8
+            app.Node_8 = uitreenode(app.RootNode);
+            app.Node_8.Text = '灰度化';
 
             % Create histequal
             app.histequal = uitreenode(app.RootNode);
@@ -465,7 +487,23 @@ classdef app1_exported < matlab.apps.AppBase
 
             % Create Node_6
             app.Node_6 = uitreenode(app.Rebuild);
-            app.Node_6.Text = 'Node';
+            app.Node_6.Text = '逆滤波';
+
+            % Create Node_7
+            app.Node_7 = uitreenode(app.RootNode);
+            app.Node_7.Text = '退化和噪声';
+
+            % Create Node4
+            app.Node4 = uitreenode(app.RootNode);
+            app.Node4.Text = 'Node4';
+
+            % Create Node2
+            app.Node2 = uitreenode(app.RootNode);
+            app.Node2.Text = 'Node2';
+
+            % Create Node3
+            app.Node3 = uitreenode(app.RootNode);
+            app.Node3.Text = 'Node3';
 
             % Create Center
             app.Center = uipanel(app.GridLayout);
@@ -511,13 +549,14 @@ classdef app1_exported < matlab.apps.AppBase
             % Create Switch_2Label
             app.Switch_2Label = uilabel(app.Center);
             app.Switch_2Label.HorizontalAlignment = 'center';
-            app.Switch_2Label.Position = [113 245 29 22];
+            app.Switch_2Label.Position = [131 277 29 22];
             app.Switch_2Label.Text = '预览';
 
             % Create PreviewOnOffSwitch
             app.PreviewOnOffSwitch = uiswitch(app.Center, 'toggle');
+            app.PreviewOnOffSwitch.Orientation = 'horizontal';
             app.PreviewOnOffSwitch.ValueChangedFcn = createCallbackFcn(app, @PreviewOnOffSwitchValueChanged, true);
-            app.PreviewOnOffSwitch.Position = [117 286 20 45];
+            app.PreviewOnOffSwitch.Position = [124 303 45 20];
             app.PreviewOnOffSwitch.Value = 'On';
 
             % Create Right
@@ -527,9 +566,85 @@ classdef app1_exported < matlab.apps.AppBase
             app.Right.Layout.Column = 3;
             app.Right.Scrollable = 'on';
 
+            % Create ParaPanel
+            app.ParaPanel = uipanel(app.Right);
+            app.ParaPanel.Title = '选项';
+            app.ParaPanel.SizeChangedFcn = createCallbackFcn(app, @updateAppLayout, true);
+            app.ParaPanel.Position = [6 507 292 221];
+
+            % Create ParaTabGroup
+            app.ParaTabGroup = uitabgroup(app.ParaPanel);
+            app.ParaTabGroup.Position = [0 -2 291 199];
+
+            % Create MedFiltTab
+            app.MedFiltTab = uitab(app.ParaTabGroup);
+            app.MedFiltTab.Title = '中值滤波区域';
+
+            % Create Label_2
+            app.Label_2 = uilabel(app.MedFiltTab);
+            app.Label_2.HorizontalAlignment = 'right';
+            app.Label_2.Position = [40 133 25 22];
+            app.Label_2.Text = '长';
+
+            % Create Medw
+            app.Medw = uispinner(app.MedFiltTab);
+            app.Medw.Limits = [0 50];
+            app.Medw.ValueChangedFcn = createCallbackFcn(app, @MedwValueChanged, true);
+            app.Medw.Position = [80 133 100 22];
+            app.Medw.Value = 3;
+
+            % Create Label_3
+            app.Label_3 = uilabel(app.MedFiltTab);
+            app.Label_3.HorizontalAlignment = 'right';
+            app.Label_3.Position = [41 99 25 22];
+            app.Label_3.Text = '宽';
+
+            % Create Medh
+            app.Medh = uispinner(app.MedFiltTab);
+            app.Medh.Limits = [0 50];
+            app.Medh.Position = [81 99 100 22];
+            app.Medh.Value = 3;
+
+            % Create conv_core_filt
+            app.conv_core_filt = uitab(app.ParaTabGroup);
+            app.conv_core_filt.Title = '卷积核滤波';
+
+            % Create Label_4
+            app.Label_4 = uilabel(app.conv_core_filt);
+            app.Label_4.HorizontalAlignment = 'right';
+            app.Label_4.Position = [37 130 25 22];
+            app.Label_4.Text = '核';
+
+            % Create EditField
+            app.EditField = uieditfield(app.conv_core_filt, 'text');
+            app.EditField.Position = [76 81 170 71];
+            app.EditField.Value = '[1 1 1; 1 1 1; 1 1 1]';
+
+            % Create engray_tab
+            app.engray_tab = uitab(app.ParaTabGroup);
+            app.engray_tab.Title = '灰度化';
+
+            % Create enrgray_tip
+            app.enrgray_tip = uilabel(app.engray_tab);
+            app.enrgray_tip.Position = [48 133 65 22];
+            app.enrgray_tip.Text = '选项不可用';
+
+            % Create reverse_filt
+            app.reverse_filt = uitab(app.ParaTabGroup);
+            app.reverse_filt.Title = '逆滤波';
+
+            % Create f_filt
+            app.f_filt = uitab(app.ParaTabGroup);
+            app.f_filt.Title = '频率域滤波';
+
+            % Create Panel
+            app.Panel = uipanel(app.Right);
+            app.Panel.Title = '信息';
+            app.Panel.Position = [8 19 288 434];
+
             % Create InfoTabs
-            app.InfoTabs = uitabgroup(app.Right);
-            app.InfoTabs.Position = [6 88 292 412];
+            app.InfoTabs = uitabgroup(app.Panel);
+            app.InfoTabs.Position = [0 44 281 361];
 
             % Create Hist
             app.Hist = uitab(app.InfoTabs);
@@ -544,19 +659,19 @@ classdef app1_exported < matlab.apps.AppBase
             app.HistAxes.Color = [0.149 0.149 0.149];
             app.HistAxes.XGrid = 'on';
             app.HistAxes.YGrid = 'on';
-            app.HistAxes.Position = [1 224 290 164];
+            app.HistAxes.Position = [1 155 272 182];
 
             % Create SwitchLabel
             app.SwitchLabel = uilabel(app.Hist);
             app.SwitchLabel.HorizontalAlignment = 'center';
-            app.SwitchLabel.Position = [32 183 53 22];
+            app.SwitchLabel.Position = [32 132 53 22];
             app.SwitchLabel.Text = '通道分离';
 
             % Create HistSeperateSwitch
             app.HistSeperateSwitch = uiswitch(app.Hist, 'slider');
             app.HistSeperateSwitch.Items = {'Off', '分离'};
             app.HistSeperateSwitch.ValueChangedFcn = createCallbackFcn(app, @HistSeperateSwitchValueChanged, true);
-            app.HistSeperateSwitch.Position = [41 202 29 13];
+            app.HistSeperateSwitch.Position = [41 151 29 13];
 
             % Create Ocil
             app.Ocil = uitab(app.InfoTabs);
@@ -571,7 +686,7 @@ classdef app1_exported < matlab.apps.AppBase
             app.OcilAx.Color = [0 0 0];
             app.OcilAx.ClippingStyle = 'rectangle';
             app.OcilAx.Box = 'on';
-            app.OcilAx.Position = [1 215 290 164];
+            app.OcilAx.Position = [-1 164 290 164];
 
             % Create OcilAx_2
             app.OcilAx_2 = uiaxes(app.Ocil);
@@ -582,80 +697,28 @@ classdef app1_exported < matlab.apps.AppBase
             app.OcilAx_2.Color = [0 0 0];
             app.OcilAx_2.ClippingStyle = 'rectangle';
             app.OcilAx_2.Box = 'on';
-            app.OcilAx_2.Position = [1 1 290 164];
+            app.OcilAx_2.Position = [-2 -42 290 164];
 
             % Create RGBSwitch_2Label
             app.RGBSwitch_2Label = uilabel(app.Ocil);
             app.RGBSwitch_2Label.HorizontalAlignment = 'center';
-            app.RGBSwitch_2Label.Position = [18 120 56 22];
+            app.RGBSwitch_2Label.Position = [40 121 56 22];
             app.RGBSwitch_2Label.Text = 'RGB分离';
 
             % Create RGBSwitch_2
             app.RGBSwitch_2 = uiswitch(app.Ocil, 'slider');
             app.RGBSwitch_2.Items = {'Off', '分离'};
             app.RGBSwitch_2.ValueChangedFcn = createCallbackFcn(app, @RGBSwitch_2ValueChanged, true);
-            app.RGBSwitch_2.Position = [42 178 29 13];
+            app.RGBSwitch_2.Position = [52 149 29 13];
 
             % Create Tab_3
             app.Tab_3 = uitab(app.InfoTabs);
             app.Tab_3.Title = 'Tab';
 
-            % Create Panel
-            app.Panel = uipanel(app.Right);
-            app.Panel.Title = 'Panel';
-            app.Panel.SizeChangedFcn = createCallbackFcn(app, @updateAppLayout, true);
-            app.Panel.Position = [6 507 292 221];
-
-            % Create TabGroup
-            app.TabGroup = uitabgroup(app.Panel);
-            app.TabGroup.Position = [1 -8 291 183];
-
-            % Create Tab_4
-            app.Tab_4 = uitab(app.TabGroup);
-            app.Tab_4.Title = '中值滤波区域';
-
-            % Create Label_2
-            app.Label_2 = uilabel(app.Tab_4);
-            app.Label_2.HorizontalAlignment = 'right';
-            app.Label_2.Position = [40 117 25 22];
-            app.Label_2.Text = '长';
-
-            % Create w
-            app.w = uispinner(app.Tab_4);
-            app.w.Position = [80 117 100 22];
-
-            % Create Label_3
-            app.Label_3 = uilabel(app.Tab_4);
-            app.Label_3.HorizontalAlignment = 'right';
-            app.Label_3.Position = [41 83 25 22];
-            app.Label_3.Text = '宽';
-
-            % Create h
-            app.h = uispinner(app.Tab_4);
-            app.h.Position = [81 83 100 22];
-
-            % Create Tab_5
-            app.Tab_5 = uitab(app.TabGroup);
-            app.Tab_5.Title = '卷积核滤波';
-
-            % Create Label_4
-            app.Label_4 = uilabel(app.Tab_5);
-            app.Label_4.HorizontalAlignment = 'right';
-            app.Label_4.Position = [42 117 25 22];
-            app.Label_4.Text = '核';
-
-            % Create EditField
-            app.EditField = uieditfield(app.Tab_5, 'text');
-            app.EditField.Position = [81 117 170 22];
-            app.EditField.Value = '[1 1 1; 1 1 1; 1 1 1]';
-
-            % Create Tab_6
-            app.Tab_6 = uitab(app.TabGroup);
-            app.Tab_6.Title = '频率域滤波';
-
-            % Create Tab_7
-            app.Tab_7 = uitab(app.TabGroup);
-            app.Tab_7.Title = '逆滤波';
+            % Create ApplyButton
+            app.ApplyButton = uibutton(app.Right, 'push');
+            app.ApplyButton.Position = [13 469 100 24];
+            app.ApplyButton.Text = '应用更改';
 
             % Create Files
             app.Files = uimenu(app.Menus);
