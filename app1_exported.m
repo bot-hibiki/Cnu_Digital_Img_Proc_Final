@@ -55,10 +55,11 @@ classdef app1_exported < matlab.apps.AppBase
         Medw                    matlab.ui.control.Spinner
         Label_2                 matlab.ui.control.Label
         ConvFiltTab             matlab.ui.container.Tab
+        matlabLabel             matlab.ui.control.Label
         CoreTemplateDropDown    matlab.ui.control.DropDown
         Label_6                 matlab.ui.control.Label
         CoreEditField           matlab.ui.control.EditField
-        evalLabel               matlab.ui.control.Label
+        Label_12                matlab.ui.control.Label
         reverse_filt            matlab.ui.container.Tab
         Label_8                 matlab.ui.control.Label
         CoreTemplateDropDown_2  matlab.ui.control.DropDown
@@ -73,6 +74,7 @@ classdef app1_exported < matlab.apps.AppBase
         motionDeg               matlab.ui.control.Knob
         motionLen               matlab.ui.control.Slider
         Label_10                matlab.ui.control.Label
+        Tab_5                   matlab.ui.container.Tab
         Files                   matlab.ui.container.Menu
         Open                    matlab.ui.container.Menu
         Save                    matlab.ui.container.Menu
@@ -98,7 +100,13 @@ classdef app1_exported < matlab.apps.AppBase
         IsGray
     end
     
-    
+    methods (Static)
+        function handleParaChangeed(src,~)
+            if sec.State
+                %app.Tree.SelectedNodes
+            end
+        end
+    end
     
     methods (Access = public)  
         function ToOpen(app)
@@ -279,6 +287,10 @@ classdef app1_exported < matlab.apps.AppBase
         end
         
         
+        
+        function res = matNorm(app, A)
+            assert(size(A,1))
+        end
     end
     
     
@@ -358,6 +370,7 @@ classdef app1_exported < matlab.apps.AppBase
 
         % Selection changed function: Tree
         function TreeSelectionChanged(app, event)
+            event
             selectedNodes = app.Tree.SelectedNodes;
             %app.ParaPanel.Title = selectedNodes.Text;
             switch (selectedNodes.Text)
@@ -367,11 +380,11 @@ classdef app1_exported < matlab.apps.AppBase
                 case '直方图均衡化'
                 %空间域滤波
                     app.PreviewGraphArray = histeq(app.MainGraphArray);
-                    app.InfoTabs.SelectedTab = app.Hist;
+                    app.ParaTabGroup.SelectedTab = app.Hist;
                     %imshow(app.PreviewGraphArray)
                     app.FlushMainGraph();
                 case '中值滤波'
-                    app.InfoTabs.SelectedTab = app.MedFiltTab;
+                    app.ParaTabGroup.SelectedTab = app.MedFiltTab;
                     h = app.Medh; w=app.Medw;
                     %h = uicontrol(app.ParaPanel,"Style","edit");
                     % 创建提示词
@@ -407,15 +420,17 @@ classdef app1_exported < matlab.apps.AppBase
                     app.ParaTabGroup.SelectedTab = app.ConvFiltTab;
                     '由于危险，放弃使用eval';
                     %coremat = eval(app.CoreEditField.Value);
-                    [coremat,tf] = str2num(app.CoreEditField.Value,Evaluation="restricted");
-                    %for(i=[1 2 3])
-                        app.PreviewGraphArray = conv2(app.MainGraphArray,coremat);
+                    coremat = str2num(app.CoreEditField.Value);
+                    for i = 1:3
+                        app.PreviewGraphArray(:, :, i) = conv2(double(app.MainGraphArray(:, :, i)), coremat, 'same');
+                    end
+                    app.FlushMainGraph();
                 case '运动模糊退化'
                     app.ParaTabGroup.SelectedTab = app.Tab_4;
                     len = app.motionLen.Value;
                     deg = app.motionDeg.Value;
                     H = fspecial('motion',len,deg);
-                    app.PreviewGraphArray = imfilter(app.PreviewGraphArray,H,'replicate');
+                    app.PreviewGraphArray = imfilter(app.MainGraphArray,H,'replicate');
                     app.FlushMainGraph();
                 otherwise
                     
@@ -467,17 +482,18 @@ classdef app1_exported < matlab.apps.AppBase
 
         % Value changed function: Medw
         function MedwValueChanged(app, event)
-            notify(app.Medw,paraChanged,app.Medw.Value);
+            notify(app.Medw,'paraChanged',app.Medw.Value);
         end
 
         % Button pushed function: ApplyButton
         function ApplyButtonPushed(app, event)
             app.MainGraphArray = app.PreviewGraphArray;
+            app.FlushMainGraph();
         end
 
         % Value changed function: Medh
         function MedhValueChanged(app, event)
-             notify(app.Medh,paraChanged,app.Medh.Value);
+             notify(app.Medh,'paraChanged',app.Medh.Value);
             
         end
 
@@ -489,10 +505,17 @@ classdef app1_exported < matlab.apps.AppBase
                     app.CoreEditField.Value = "ones(3)";
                 case '十字均值'
                     app.CoreEditField.Value = "[0 1 0;1 1 1;0 1 0]";
-                case '纵向'
+                case '纵向均值'
                     app.CoreEditField.Value = "[1;1;1]";
-                case '横向'
+                case '横向均值'
                     app.CoreEditField.Value = "[1 1 1]";
+                case '拉普拉斯滤波器'
+                    app.CoreEditField.Value = '[1 1 1;1 -8 1; 1 1 1]';
+                case '边缘提取Sovbel算子（纵向）'
+                     app.CoreEditField.Value = '[-1 0 1; -2 0 2 ;-1 0 1]';
+                case '边缘提取Sovbel算子（横向）'
+                    app.CoreEditField.Value = 'transpose([-1 0 1; -2 0 2;-1 0 1])';
+                     
             end
             
         end
@@ -500,6 +523,21 @@ classdef app1_exported < matlab.apps.AppBase
         % Value changed function: motionDeg
         function motionDegValueChanged(app, event)
             value = app.motionDeg.Value;
+            notify(app.motionDeg,'paraChanged',value);
+            
+        end
+
+        % Value changed function: motionLen
+        function motionLenValueChanged(app, event)
+            value = app.motionLen.Value;
+            notify(app.motionLen,'paraChanged',value);
+            
+        end
+
+        % Value changed function: CoreEditField
+        function CoreEditFieldValueChanged(app, event)
+            value = app.CoreEditField.Value;
+            notify(app.CoreEditField,'paraChanged', value)
             
         end
     end
@@ -711,7 +749,7 @@ classdef app1_exported < matlab.apps.AppBase
             app.Medw.Limits = [0 50];
             app.Medw.ValueChangedFcn = createCallbackFcn(app, @MedwValueChanged, true);
             app.Medw.Position = [80 133 100 22];
-            app.Medw.Value = 3;
+            app.Medw.Value = 10;
 
             % Create Label_3
             app.Label_3 = uilabel(app.MedFiltTab);
@@ -724,35 +762,41 @@ classdef app1_exported < matlab.apps.AppBase
             app.Medh.Limits = [0 50];
             app.Medh.ValueChangedFcn = createCallbackFcn(app, @MedhValueChanged, true);
             app.Medh.Position = [81 99 100 22];
-            app.Medh.Value = 3;
+            app.Medh.Value = 10;
 
             % Create ConvFiltTab
             app.ConvFiltTab = uitab(app.ParaTabGroup);
             app.ConvFiltTab.Title = '卷积核滤波';
 
-            % Create evalLabel
-            app.evalLabel = uilabel(app.ConvFiltTab);
-            app.evalLabel.HorizontalAlignment = 'center';
-            app.evalLabel.Position = [23 76 76 46];
-            app.evalLabel.Text = {'核'; ''; '使用eval读取'};
+            % Create Label_12
+            app.Label_12 = uilabel(app.ConvFiltTab);
+            app.Label_12.HorizontalAlignment = 'center';
+            app.Label_12.Position = [36 83 25 22];
+            app.Label_12.Text = {'核'; ''};
 
             % Create CoreEditField
             app.CoreEditField = uieditfield(app.ConvFiltTab, 'text');
-            app.CoreEditField.Position = [100 63 170 71];
-            app.CoreEditField.Value = '[1 1 1; 1 1 1; 1 1 1]';
+            app.CoreEditField.ValueChangedFcn = createCallbackFcn(app, @CoreEditFieldValueChanged, true);
+            app.CoreEditField.Position = [87 46 170 71];
+            app.CoreEditField.Value = '[1 1 1;1 -8 1; 1 1 1]';
 
             % Create Label_6
             app.Label_6 = uilabel(app.ConvFiltTab);
             app.Label_6.HorizontalAlignment = 'right';
-            app.Label_6.Position = [45 135 41 22];
+            app.Label_6.Position = [7 135 41 22];
             app.Label_6.Text = '核模板';
 
             % Create CoreTemplateDropDown
             app.CoreTemplateDropDown = uidropdown(app.ConvFiltTab);
-            app.CoreTemplateDropDown.Items = {'矩形均值', '十字均值', '纵向', '横向'};
+            app.CoreTemplateDropDown.Items = {'拉普拉斯滤波器', '边缘提取Sovbel算子（横向）', '边缘提取Sovbel算子（纵向）', '矩形均值', '十字均值', '纵向均值', '横向均值'};
             app.CoreTemplateDropDown.ValueChangedFcn = createCallbackFcn(app, @CoreTemplateDropDownValueChanged, true);
-            app.CoreTemplateDropDown.Position = [101 135 100 22];
-            app.CoreTemplateDropDown.Value = '矩形均值';
+            app.CoreTemplateDropDown.Position = [63 135 213 22];
+            app.CoreTemplateDropDown.Value = '拉普拉斯滤波器';
+
+            % Create matlabLabel
+            app.matlabLabel = uilabel(app.ConvFiltTab);
+            app.matlabLabel.Position = [32 16 226 22];
+            app.matlabLabel.Text = '请用matlab语法书写核矩阵';
 
             % Create reverse_filt
             app.reverse_filt = uitab(app.ParaTabGroup);
@@ -817,6 +861,7 @@ classdef app1_exported < matlab.apps.AppBase
             app.motionLen = uislider(app.Tab_4);
             app.motionLen.Limits = [0 20];
             app.motionLen.Orientation = 'vertical';
+            app.motionLen.ValueChangedFcn = createCallbackFcn(app, @motionLenValueChanged, true);
             app.motionLen.Position = [235 9 3 150];
             app.motionLen.Value = 1;
 
@@ -834,6 +879,10 @@ classdef app1_exported < matlab.apps.AppBase
             app.Label_11.HorizontalAlignment = 'center';
             app.Label_11.Position = [81 71 29 22];
             app.Label_11.Text = {'角度'; ''};
+
+            % Create Tab_5
+            app.Tab_5 = uitab(app.ParaTabGroup);
+            app.Tab_5.Title = 'Tab';
 
             % Create Panel
             app.Panel = uipanel(app.Right);
